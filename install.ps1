@@ -20,7 +20,7 @@ $libraries = @($steam)
 $vdf = Join-Path $steam "steamapps\libraryfolders.vdf"
 if (Test-Path $vdf) {
     (Get-Content $vdf) | Select-String '"path"\s+"([^"]+)"' | ForEach-Object {
-        $libraries += $_.Matches[0].Groups[1].Value.Replace('\\\\','\')
+        $libraries += $_.Matches[0].Groups[1].Value.Replace('\\','\')
     }
 }
 
@@ -70,7 +70,14 @@ if (Test-Path (Join-Path $work "mod\config")) {
 }
 Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
 
+# --- 4. Prove it ----------------------------------------------------------------------
+$dll = Join-Path $valheim "BepInEx\plugins\ValheimWizard\ValheimWizard.dll"
+if (-not (Test-Path $dll)) { Die "Install finished but the mod DLL is missing at $dll - tell the host." }
+$loader = Join-Path $valheim "winhttp.dll"
+if (-not (Test-Path $loader)) { Die "BepInEx loader (winhttp.dll) missing from $valheim - tell the host." }
+
 Say ""
+Say "VERIFIED: mod and loader are in place."
 Say "DONE. Launch Valheim from Steam like always and join your friend's world."
 Say "You get your OWN dragon: E mounts it, hold click pours fire, C calls it. Have fun."
 Say "(Optional: add -console to Steam launch options for the F5 console spells.)"
