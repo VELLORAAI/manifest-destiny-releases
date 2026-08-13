@@ -38,13 +38,18 @@ Valheim from Steam like always. Done.
    `config/ValheimWizard` into `BepInEx/config/`.
 3. Add `-console` to Steam Launch Options. Launch.
 
-### macOS
-Clone/copy this repo, then:
+### macOS (ONE LINE — tested end-to-end on a real Mac)
+Open Terminal and paste:
 ```bash
-scripts/install-friend.sh path/to/ManifestDestiny-X.Y.Z.zip
+curl -fsSL https://raw.githubusercontent.com/VELLORAAI/manifest-destiny-releases/main/install.sh | bash
 ```
-It installs the loader (with the macOS launcher fixes this repo carries) and unpacks the mod.
-Launch with `scripts/play.sh`.
+It finds your Steam Valheim, installs the loader **with the macOS fixes** (the stock pack fails
+silently on Mac without them), installs the newest release, verifies everything, and puts a
+double-clickable **Valheim Modded** launcher on your Desktop. Steam signed in → double-click → play.
+
+Note for guests: spells marked as needing cheats (godmode, free-build) only work for the world's
+host — Valheim doesn't allow clients to enable devcommands on a friend-hosted world. Your dragon,
+its fire, and all its orders work everywhere.
 
 ## House rules worth agreeing on
 - `killall`, bombing runs and dragonfire don't check ownership — pets and wooden builds burn,

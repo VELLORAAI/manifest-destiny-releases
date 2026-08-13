@@ -19,6 +19,15 @@ irm https://raw.githubusercontent.com/VELLORAAI/manifest-destiny-releases/main/i
 
 Then launch Valheim from Steam like always and join your friend's world. That's the whole thing.
 
+## Install — macOS, one line (tested on a real Mac)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/VELLORAAI/manifest-destiny-releases/main/install.sh | bash
+```
+
+Finds Valheim, installs the loader with the macOS fixes, installs the newest release, verifies it,
+and puts a double-clickable **Valheim Modded** launcher on your Desktop.
+
 ## Other installs (two minutes)
 
 **Windows (easiest):** [r2modman](https://thunderstore.io/c/valheim/p/ebkr/r2modman/) →
