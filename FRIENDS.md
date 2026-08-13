@@ -36,7 +36,7 @@ Valheim from Steam like always. Done.
 1. Install BepInExPack Valheim (unzip its contents into the Valheim folder next to `valheim.exe`).
 2. From the ManifestDestiny zip: copy `plugins/ValheimWizard` into `BepInEx/plugins/`, and
    `config/ValheimWizard` into `BepInEx/config/`.
-3. Add `-console` to Steam Launch Options. Launch.
+3. Launch from Steam like always. (The mod turns the F5 console on by itself.)
 
 ### macOS (ONE LINE — tested end-to-end on a real Mac)
 Open Terminal and paste:
@@ -44,8 +44,11 @@ Open Terminal and paste:
 curl -fsSL https://raw.githubusercontent.com/VELLORAAI/manifest-destiny-releases/main/install.sh | bash
 ```
 It finds your Steam Valheim, installs the loader **with the macOS fixes** (the stock pack fails
-silently on Mac without them), installs the newest release, verifies everything, and puts a
-double-clickable **Valheim Modded** launcher on your Desktop. Steam signed in → double-click → play.
+silently on Mac without them), installs the newest release, and wires **the Steam Play button
+itself** to launch modded — Launch Options are skipped entirely because Steam on macOS silently
+drops them. It verifies everything and also puts a double-clickable **Valheim Modded** launcher
+on your Desktop as a spare. Steam signed in → click Play → play. After a Valheim game update,
+re-run the same one-liner once.
 
 Note for guests: spells marked as needing cheats (godmode, free-build) only work for the world's
 host — Valheim doesn't allow clients to enable devcommands on a friend-hosted world. Your dragon,

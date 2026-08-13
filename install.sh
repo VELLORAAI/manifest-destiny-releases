@@ -62,10 +62,49 @@ mkdir -p "$VALHEIM_DIR/BepInEx/plugins" "$VALHEIM_DIR/BepInEx/config"
 [[ -d "$WORK/mod/config" ]] && cp -R "$WORK/mod/config/"* "$VALHEIM_DIR/BepInEx/config/"
 xattr -dr com.apple.quarantine "$VALHEIM_DIR/BepInEx/plugins" 2>/dev/null || true
 
-# --- 4. Prove it ----------------------------------------------------------------------
+# --- 4. Steam Play button = modded (bundle shim) --------------------------------------
+# Launch Options are the classic way in, and Steam on macOS silently drops them: they live
+# in Steam's memory, flush to disk on Steam's own schedule, and a real client was observed
+# executing the bare app path with options set (console_log, 2026-08-13). So the intercept
+# moves inside the bundle where Steam cannot miss it: the real Mach-O becomes <name>.real
+# and a /bin/sh shim execs the loader in its place. SIP strips DYLD_* across any exec into
+# /bin/sh, so even a doubled-up launch chain injects exactly once. Steam's file verification
+# restores vanilla binaries after game updates - re-running this installer re-applies.
+INNER="$(defaults read "$APP/Contents/Info" CFBundleExecutable)"
+MACOS_DIR="$APP/Contents/MacOS"
+if file "$MACOS_DIR/$INNER" | grep -q "Mach-O"; then
+  mv "$MACOS_DIR/$INNER" "$MACOS_DIR/$INNER.real"
+elif [[ ! -x "$MACOS_DIR/$INNER.real" ]]; then
+  fail "$INNER is neither the game binary nor shimmed, and no $INNER.real exists.
+Verify game files in Steam, then re-run this installer."
+fi
+cat > "$MACOS_DIR/$INNER" <<'SHIM'
+#!/bin/sh
+# Manifest Destiny shim: every launch of this bundle goes through the BepInEx
+# loader, so the Steam Play button starts the game modded. The real Mach-O
+# binary lives beside this script as <name>.real. If Steam's file verification
+# restores vanilla files (game updates do), re-run the one-line installer.
+D=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+V=$(CDPATH= cd -- "$D/../../.." && pwd -P)
+REAL="$D/$(basename -- "$0").real"
+LOADER="$V/start_game_bepinex.sh"
+[ -x "$REAL" ] || exit 1
+if [ -x "$LOADER" ]; then
+  exec "$LOADER" "$REAL" -console "$@"
+fi
+exec "$REAL" "$@"
+SHIM
+chmod 755 "$MACOS_DIR/$INNER"
+# Loader default -> the real binary, so the Desktop launcher and any direct loader run
+# stay single-hop instead of resolving CFBundleExecutable back into the shim.
+/usr/bin/sed -i '' "s|^executable_name=.*|executable_name=\"$(basename "$APP")/Contents/MacOS/$INNER.real\"|" "$LAUNCHER"
+
+# --- 5. Prove it ----------------------------------------------------------------------
 [[ -f "$VALHEIM_DIR/BepInEx/plugins/ValheimWizard/ValheimWizard.dll" ]] || fail "Mod DLL missing after install - tell the host."
 [[ -f "$VALHEIM_DIR/doorstop_libs/libdoorstop_x64.dylib" ]] || fail "Doorstop library missing - tell the host."
 grep -q 'arch -x86_64' "$LAUNCHER" || fail "macOS launcher fix did not apply - tell the host."
+file "$MACOS_DIR/$INNER.real" | grep -q "Mach-O" || fail "Real game binary check failed - tell the host."
+head -1 "$MACOS_DIR/$INNER" | grep -q '^#!/bin/sh' || fail "Steam Play button shim check failed - tell the host."
 
 # A double-clickable launcher on the Desktop, so 'launch modded' is one click.
 CMD="$HOME/Desktop/Valheim Modded.command"
@@ -73,6 +112,7 @@ printf '#!/bin/bash\nopen -a Steam\ncd "%s"\nexec ./start_game_bepinex.sh -conso
 chmod +x "$CMD"; xattr -d com.apple.quarantine "$CMD" 2>/dev/null || true
 
 bold ""
-bold "VERIFIED - mod, loader and macOS fixes all in place."
-bold "Launch: double-click 'Valheim Modded' on your Desktop (Steam must be signed in)."
+bold "VERIFIED - mod, loader, macOS fixes and the Steam Play button shim are all in place."
+bold "Launch Valheim from Steam like always - the mod is part of the normal game now."
+bold "(The 'Valheim Modded' Desktop launcher works too, and the F5 console is always on.)"
 bold "Then join your friend's world. E mounts your dragon; hold click pours fire. Have fun."
