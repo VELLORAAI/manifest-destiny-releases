@@ -8,12 +8,21 @@
 # On Windows the loader hooks in by itself (winhttp.dll) - no launch options needed.
 
 $ErrorActionPreference = "Stop"
+
+# Stock Windows PowerShell 5.1 still defaults to old TLS, and both GitHub and Thunderstore
+# refuse it - without this line the very first download dies with an SSL error.
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
 function Say($m) { Write-Host $m -ForegroundColor Cyan }
 function Die($m) { Write-Host "ERROR: $m" -ForegroundColor Red; exit 1 }
 
 # --- 1. Find Valheim ------------------------------------------------------------------
 Say "Looking for Valheim..."
 $steam = (Get-ItemProperty -Path "HKCU:\Software\Valve\Steam" -ErrorAction SilentlyContinue).SteamPath
+if (-not $steam) {
+    # Some installs only register machine-wide.
+    $steam = (Get-ItemProperty -Path "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam" -ErrorAction SilentlyContinue).InstallPath
+}
 if (-not $steam) { Die "Steam not found. Install Steam and Valheim first." }
 
 $libraries = @($steam)
