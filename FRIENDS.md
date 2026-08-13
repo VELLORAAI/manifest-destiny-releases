@@ -11,11 +11,22 @@ burning and collapsing, castles rising, roads, villagers, warcamps. Only the hos
 
 ## Friends who want their OWN dragon
 
-Install the mod from the release zip (`ManifestDestiny-X.Y.Z.zip`). Every wizard gets their own
+Download the newest `ManifestDestiny-X.Y.Z.zip` from **https://github.com/VELLORAAI/manifest-destiny-releases/releases/latest** (public - no account needed). Every wizard gets their own
 familiar and their own Keeper — dragons are stamped with their owner, so nobody steals anybody's
 mount. Castles, villages, the treasury and the war are shared: one empire, several wizards.
 
-### Windows (easiest: r2modman)
+### Windows (easiest: ONE LINE, nothing else)
+
+Open PowerShell (Start menu → type "powershell") and paste:
+
+```powershell
+irm https://raw.githubusercontent.com/VELLORAAI/manifest-destiny-releases/main/install.ps1 | iex
+```
+
+It finds your Steam Valheim, installs the loader, installs the newest release, and you launch
+Valheim from Steam like always. Done.
+
+### Windows (alternative: r2modman)
 1. Install [r2modman](https://thunderstore.io/c/valheim/p/ebkr/r2modman/), pick Valheim.
 2. Install **BepInExPack Valheim** (denikson) from the online list.
 3. Settings → **Import local mod** → choose the `ManifestDestiny-X.Y.Z.zip`.

@@ -9,7 +9,17 @@ map is yours.
 
 Grab the newest `ManifestDestiny-X.Y.Z.zip` from **[Releases](../../releases/latest)**.
 
-## Install (friends: two minutes)
+## Install — Windows, one line
+
+Open PowerShell and paste:
+
+```powershell
+irm https://raw.githubusercontent.com/VELLORAAI/manifest-destiny-releases/main/install.ps1 | iex
+```
+
+Then launch Valheim from Steam like always and join your friend's world. That's the whole thing.
+
+## Other installs (two minutes)
 
 **Windows (easiest):** [r2modman](https://thunderstore.io/c/valheim/p/ebkr/r2modman/) →
 install **BepInExPack Valheim** → Settings → *Import local mod* → pick the zip → launch modded.
