@@ -77,6 +77,22 @@ if (Test-Path (Join-Path $work "mod\plugins")) {
 if (Test-Path (Join-Path $work "mod\config")) {
     Copy-Item (Join-Path $work "mod\config\*") (Join-Path $valheim "BepInEx\config") -Recurse -Force
 }
+
+# Bundled worlds (never overwrites a world you already have)
+$worldsSrc = Join-Path $work "mod\worlds"
+if (Test-Path $worldsSrc) {
+    $worldsDst = Join-Path $env:USERPROFILE "AppData\LocalLow\IronGate\Valheim\worlds_local"
+    New-Item -ItemType Directory -Path $worldsDst -Force | Out-Null
+    Get-ChildItem $worldsSrc -File | ForEach-Object {
+        $dest = Join-Path $worldsDst $_.Name
+        if (Test-Path $dest) {
+            Say "World file $($_.Name) already present - keeping yours."
+        } else {
+            Copy-Item $_.FullName $dest
+            Say "World installed: $($_.Name)"
+        }
+    }
+}
 Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
 
 # --- 4. Prove it ----------------------------------------------------------------------
@@ -88,5 +104,6 @@ if (-not (Test-Path $loader)) { Die "BepInEx loader (winhttp.dll) missing from $
 Say ""
 Say "VERIFIED: mod and loader are in place."
 Say "DONE. Launch Valheim from Steam like always and join your friend's world."
-Say "You get your OWN dragon: E mounts it, hold click pours fire, C calls it. Have fun."
+Say "You get a dragon AND a horse: E mounts, C calls the dragon, Summon Steed is on the G wheel."
+Say "The Castleheim castle world is in your Select World list."
 Say "(The F5 console is enabled by the mod itself - no launch options needed.)"

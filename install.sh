@@ -62,6 +62,21 @@ mkdir -p "$VALHEIM_DIR/BepInEx/plugins" "$VALHEIM_DIR/BepInEx/config"
 [[ -d "$WORK/mod/config" ]] && cp -R "$WORK/mod/config/"* "$VALHEIM_DIR/BepInEx/config/"
 xattr -dr com.apple.quarantine "$VALHEIM_DIR/BepInEx/plugins" 2>/dev/null || true
 
+# --- 3b. Bundled worlds (never overwrites a world you already have) -------------------
+if [[ -d "$WORK/mod/worlds" ]]; then
+  WORLDS_DIR="$HOME/Library/Application Support/IronGate/Valheim/worlds_local"
+  mkdir -p "$WORLDS_DIR"
+  for w in "$WORK/mod/worlds/"*; do
+    base="$(basename "$w")"
+    if [[ -e "$WORLDS_DIR/$base" ]]; then
+      bold "World file $base already present - keeping yours."
+    else
+      cp "$w" "$WORLDS_DIR/"
+      bold "World installed: $base"
+    fi
+  done
+fi
+
 # --- 4. Steam Play button = modded (bundle shim) --------------------------------------
 # Launch Options are the classic way in, and Steam on macOS silently drops them: they live
 # in Steam's memory, flush to disk on Steam's own schedule, and a real client was observed
@@ -70,15 +85,22 @@ xattr -dr com.apple.quarantine "$VALHEIM_DIR/BepInEx/plugins" 2>/dev/null || tru
 # and a /bin/sh shim execs the loader in its place. SIP strips DYLD_* across any exec into
 # /bin/sh, so even a doubled-up launch chain injects exactly once. Steam's file verification
 # restores vanilla binaries after game updates - re-running this installer re-applies.
+# Newer macOS ships App Management protection: a terminal that has not been granted it gets
+# a silent "Operation not permitted" on ANY write inside another app's bundle - no prompt,
+# no dialog. So the shim is best-effort: when macOS says no, the install still finishes and
+# the Desktop launcher covers playing modded; the message at the end explains the one-time
+# System Settings toggle that unlocks the Play button for people who want it.
+SHIM_OK=1
 INNER="$(defaults read "$APP/Contents/Info" CFBundleExecutable)"
 MACOS_DIR="$APP/Contents/MacOS"
 if file "$MACOS_DIR/$INNER" | grep -q "Mach-O"; then
-  mv "$MACOS_DIR/$INNER" "$MACOS_DIR/$INNER.real"
+  mv "$MACOS_DIR/$INNER" "$MACOS_DIR/$INNER.real" 2>/dev/null || SHIM_OK=0
 elif [[ ! -x "$MACOS_DIR/$INNER.real" ]]; then
   fail "$INNER is neither the game binary nor shimmed, and no $INNER.real exists.
 Verify game files in Steam, then re-run this installer."
 fi
-cat > "$MACOS_DIR/$INNER" <<'SHIM'
+if [[ $SHIM_OK -eq 1 ]]; then
+if ! cat > "$MACOS_DIR/$INNER" 2>/dev/null <<'SHIM'
 #!/bin/sh
 # Manifest Destiny shim: every launch of this bundle goes through the BepInEx
 # loader, so the Steam Play button starts the game modded. The real Mach-O
@@ -94,17 +116,30 @@ if [ -x "$LOADER" ]; then
 fi
 exec "$REAL" "$@"
 SHIM
-chmod 755 "$MACOS_DIR/$INNER"
-# Loader default -> the real binary, so the Desktop launcher and any direct loader run
-# stay single-hop instead of resolving CFBundleExecutable back into the shim.
-/usr/bin/sed -i '' "s|^executable_name=.*|executable_name=\"$(basename "$APP")/Contents/MacOS/$INNER.real\"|" "$LAUNCHER"
+then
+  SHIM_OK=0
+  # The rename landed but the shim write was refused: put the real binary back so the
+  # bundle keeps launching (vanilla) instead of being left headless.
+  if [[ -x "$MACOS_DIR/$INNER.real" && ! -e "$MACOS_DIR/$INNER" ]]; then
+    mv "$MACOS_DIR/$INNER.real" "$MACOS_DIR/$INNER" 2>/dev/null || true
+  fi
+fi
+fi
+if [[ $SHIM_OK -eq 1 ]]; then
+  chmod 755 "$MACOS_DIR/$INNER"
+  # Loader default -> the real binary, so the Desktop launcher and any direct loader run
+  # stay single-hop instead of resolving CFBundleExecutable back into the shim.
+  /usr/bin/sed -i '' "s|^executable_name=.*|executable_name=\"$(basename "$APP")/Contents/MacOS/$INNER.real\"|" "$LAUNCHER"
+fi
 
 # --- 5. Prove it ----------------------------------------------------------------------
 [[ -f "$VALHEIM_DIR/BepInEx/plugins/ValheimWizard/ValheimWizard.dll" ]] || fail "Mod DLL missing after install - tell the host."
 [[ -f "$VALHEIM_DIR/doorstop_libs/libdoorstop_x64.dylib" ]] || fail "Doorstop library missing - tell the host."
 grep -q 'arch -x86_64' "$LAUNCHER" || fail "macOS launcher fix did not apply - tell the host."
-file "$MACOS_DIR/$INNER.real" | grep -q "Mach-O" || fail "Real game binary check failed - tell the host."
-head -1 "$MACOS_DIR/$INNER" | grep -q '^#!/bin/sh' || fail "Steam Play button shim check failed - tell the host."
+if [[ $SHIM_OK -eq 1 ]]; then
+  file "$MACOS_DIR/$INNER.real" | grep -q "Mach-O" || fail "Real game binary check failed - tell the host."
+  head -1 "$MACOS_DIR/$INNER" | grep -q '^#!/bin/sh' || fail "Steam Play button shim check failed - tell the host."
+fi
 
 # A double-clickable launcher on the Desktop, so 'launch modded' is one click.
 CMD="$HOME/Desktop/Valheim Modded.command"
@@ -112,7 +147,19 @@ printf '#!/bin/bash\nopen -a Steam\ncd "%s"\nexec ./start_game_bepinex.sh -conso
 chmod +x "$CMD"; xattr -d com.apple.quarantine "$CMD" 2>/dev/null || true
 
 bold ""
-bold "VERIFIED - mod, loader, macOS fixes and the Steam Play button shim are all in place."
-bold "Launch Valheim from Steam like always - the mod is part of the normal game now."
-bold "(The 'Valheim Modded' Desktop launcher works too, and the F5 console is always on.)"
-bold "Then join your friend's world. E mounts your dragon; hold click pours fire. Have fun."
+if [[ $SHIM_OK -eq 1 ]]; then
+  bold "VERIFIED - mod, loader, macOS fixes and the Steam Play button shim are all in place."
+  bold "Launch Valheim from Steam like always - the mod is part of the normal game now."
+  bold "(The 'Valheim Modded' Desktop launcher works too, and the F5 console is always on.)"
+else
+  bold "VERIFIED - mod and loader are in place. One macOS-only step was skipped:"
+  bold "your Mac's App Management protection silently blocks editing the Steam Play button."
+  bold ""
+  bold "EASY MODE (nothing to fix): double-click 'Valheim Modded' on your Desktop to play."
+  bold ""
+  bold "Want the Steam Play button modded too? One-time toggle:"
+  bold "  System Settings > Privacy & Security > App Management > + > add Terminal > ON,"
+  bold "  fully quit Terminal (Cmd-Q), reopen it, and re-run this installer one-liner."
+fi
+bold "You get a dragon and a horse: E mounts, C calls the dragon, Summon Steed is on the G wheel."
+bold "The Castleheim castle world is in your Select World list. Have fun."
