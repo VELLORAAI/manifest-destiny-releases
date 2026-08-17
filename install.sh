@@ -130,6 +130,13 @@ if [[ $SHIM_OK -eq 1 ]]; then
   # Loader default -> the real binary, so the Desktop launcher and any direct loader run
   # stay single-hop instead of resolving CFBundleExecutable back into the shim.
   /usr/bin/sed -i '' "s|^executable_name=.*|executable_name=\"$(basename "$APP")/Contents/MacOS/$INNER.real\"|" "$LAUNCHER"
+  # The game ships with a hardened-runtime signature sealed to the original bundle. Once the
+  # binary is renamed and the seal broken, launching through Steam gets it SIGKILLed on the
+  # spot ("code signature invalid") - Terminal launches skip that check, so the crash only
+  # ever shows on the Play button. An ad-hoc re-sign makes the moved binary valid anywhere.
+  codesign --force -s - "$MACOS_DIR/$INNER.real" 2>/dev/null || bold \
+    "Note: re-sign failed - if the Play button crashes on launch, run this in Terminal:
+  codesign --force -s - \"$MACOS_DIR/$INNER.real\""
 fi
 
 # --- 5. Prove it ----------------------------------------------------------------------
