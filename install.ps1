@@ -93,6 +93,16 @@ if (Test-Path $worldsSrc) {
         }
     }
 }
+# 3.0.0 briefly bundled a horse plugin whose 2023-era startup libraries hang current Valheim
+# at the loading screen - a black screen that never finishes. Remove it if an earlier install
+# left it behind; the wizard's steed is a saddled lox now and needs no plugin.
+$oldHorse = Join-Path $valheim "BepInEx\plugins\OdinHorse"
+if (Test-Path $oldHorse) {
+    Remove-Item $oldHorse -Recurse -Force
+    Remove-Item (Join-Path $valheim "BepInEx\config\Raelaziel.OdinHorse.cfg") -Force -ErrorAction SilentlyContinue
+    Say "Removed the old horse plugin - it was stopping the game from loading."
+}
+
 Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
 
 # --- 4. Prove it ----------------------------------------------------------------------
