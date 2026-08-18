@@ -62,6 +62,15 @@ mkdir -p "$VALHEIM_DIR/BepInEx/plugins" "$VALHEIM_DIR/BepInEx/config"
 [[ -d "$WORK/mod/config" ]] && cp -R "$WORK/mod/config/"* "$VALHEIM_DIR/BepInEx/config/"
 xattr -dr com.apple.quarantine "$VALHEIM_DIR/BepInEx/plugins" 2>/dev/null || true
 
+# 3.0.0 briefly bundled a horse plugin. Its own 2023-era registration libraries hang current
+# Valheim at the loading screen - a black screen that never finishes. Remove it if an earlier
+# install left it behind; the wizard's steed is a saddled lox now and needs no plugin.
+if [[ -d "$VALHEIM_DIR/BepInEx/plugins/OdinHorse" ]]; then
+  rm -rf "$VALHEIM_DIR/BepInEx/plugins/OdinHorse"
+  rm -f "$VALHEIM_DIR/BepInEx/config/Raelaziel.OdinHorse.cfg"
+  bold "Removed the old horse plugin - it was stopping the game from loading."
+fi
+
 # --- 3b. Bundled worlds (never overwrites a world you already have) -------------------
 if [[ -d "$WORK/mod/worlds" ]]; then
   WORLDS_DIR="$HOME/Library/Application Support/IronGate/Valheim/worlds_local"
